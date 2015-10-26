@@ -157,48 +157,72 @@ IF EXISTS (SELECT *
 
 GO
 
-CREATE FUNCTION [dbo].[fn_base62decode](@base62_str [varchar](max))
+CREATE FUNCTION [dbo].[fn_base62decode](@string_data [varchar](max))
 RETURNS [varbinary](max) WITH EXECUTE AS CALLER
 AS
 BEGIN
 	declare @c_base62_digits char(62) =   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 	declare @c_base62_bin varbinary(75) = 0x000102030405060708097F7F7F7F7F7F7F0A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122237F7F7F7F7F7F2425262728292A2B2C2D2E2F303132333435363738393A3B3C3D;
 
-	declare @base62_bin varchar(max) = '';
-	--declare @base62_bin varbinary(max);
-	declare @srcLen int = DATALENGTH(@base62_str);
-	declare @v_iterator int = 0;
+	declare @base62_bin varbinary(max);
+
 	declare @dstLen int = 0;
-	declare @bCarry tinyint = 0;
-	declare @dstDigit bigint = 0;
-	WHILE ( @bCarry = 0 )
+	declare @carry_flag bit = 'TRUE';
+	WHILE ( @carry_flag = 'TRUE' )
 	BEGIN
-		set @v_iterator = 0;
-		set @bCarry = 1;
-		set @dstDigit = 0;
-		WHILE ( @v_iterator < @srcLen )
+		set @carry_flag = 'FALSE';
+		declare @dstDigit bigint = 0;
+		declare @string_len int = DATALENGTH(@string_data);
+
+		--print N'Len:' + RTRIM(CAST(@string_len AS nvarchar(max)));
+
+		declare @iterator int = 1;
+		WHILE ( @iterator <= @string_len )
 		BEGIN
-			declare @mapPos tinyint = convert(tinyint, convert(varbinary(1), SUBSTRING(@base62_str, @v_iterator+1, 1))) - 0x30;
-			declare @srcDigit bigint = convert(bigint, SUBSTRING(@c_base62_bin, @mapPos+1, 1));
+			declare @mapPos tinyint = CONVERT(tinyint, CONVERT(varbinary(1), SUBSTRING(@string_data, @iterator, 1))) - 0x2F;
+			declare @srcDigit tinyint = CONVERT(tinyint, SUBSTRING(@c_base62_bin, @mapPos, 1));
 			set @dstDigit = (@dstDigit * 62 + @srcDigit);
+
+			--print N'Index:' + RTRIM(CAST(@iterator AS nvarchar(max)));
+			--print CONVERT(varbinary(max), @srcDigit);
+
 			IF @dstDigit >= 256
 			BEGIN
-			 	set @base62_str = STUFF(@base62_str, @v_iterator+1, 1, substring( @c_base62_digits, @dstDigit/256+1, 1 ));
+			 	set @string_data = STUFF(@string_data, @iterator, 1, substring( @c_base62_digits, @dstDigit/256+1, 1 ));
 				set @dstDigit %= 256;
-				set @bCarry = 0;
+				set @carry_flag = 'TRUE';
 			END
 			ELSE
-				set @base62_str = STUFF(@base62_str, @v_iterator+1, 1, 0x30);
-			set @v_iterator = @v_iterator + 1;
+			BEGIN
+				IF @iterator = 1
+				BEGIN
+					set @string_data = STUFF(@string_data, @iterator, 1, '');
+					set @string_len = @string_len - 1;
+					set @iterator = @iterator - 1;
+				END
+				ELSE
+				BEGIN
+					set @string_data = STUFF(@string_data, @iterator, 1, 0x30);
+				END
+			END
+
+			set @iterator = @iterator + 1;
 		END
-		set @base62_bin = @base62_bin + CONVERT(varchar(1), CONVERT(varbinary(1), @dstDigit));
-		--set @base62_bin = CONVERT(varbinary(max), CONCAT(@base62_bin, CONVERT(varbinary(1), @dstDigit)));
+
+		IF @dstLen = 0
+		BEGIN
+			set @base62_bin = CONVERT(varbinary(1), @dstDigit);
+		END
+		ELSE
+		BEGIN
+			set @base62_bin = CONVERT(varbinary(max), (CONVERT(varchar(1), CONVERT(varbinary(1), @dstDigit)) + CONVERT(varchar(max), @base62_bin)));
+		END
 		set @dstLen = @dstLen + 1;
+
+		--print @base62_bin;
+
 	END
-	--set @base62_bin = CONVERT(varbinary(max), REVERSE(@base62_bin));
-	--return @base62_bin;
-	declare @return_bin varbinary(max) = CONVERT(varbinary(max), REVERSE(@base62_bin));
-	return @return_bin;
+	return @base62_bin;
 END
 
 GO
