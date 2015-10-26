@@ -1,5 +1,3 @@
-USE [testdb]
-GO
 
 SET ANSI_NULLS ON
 GO
@@ -288,14 +286,14 @@ GO
 
 --##############################################################################
 
-select dbo.fn_base62encode(0x93627C68D74D5BA145E40AC0BE778A5C), 0x93627C68D74D5BA145E40AC0BE778A5C;
-select dbo.fn_base62encode(dbo.fn_hex2bin(dbo.fn_uuid2hex('BE778A5C-0AC0-45E4-A15B-4DD7687C6293'))), 0x93627C68D74D5BA145E40AC0BE778A5C;
+select dbo.fn_base62encode(0x93627C68D74D5BA145E40AC0BE778A5C), '4U6sZo9kFS2weMLGMzWbTo';
+select dbo.fn_base62encode(dbo.fn_hex2bin(dbo.fn_uuid2hex('BE778A5C-0AC0-45E4-A15B-4DD7687C6293'))), '4U6sZo9kFS2weMLGMzWbTo';
 
 GO
 
 --##############################################################################
 
-select dbo.fn_base62decode('4U6sZo9kFS2weMLGMzWbTo'), 'BE778A5C-0AC0-45E4-A15B-4DD7687C6293';
+select dbo.fn_base62decode('4U6sZo9kFS2weMLGMzWbTo'), 0x93627C68D74D5BA145E40AC0BE778A5C;
 select dbo.fn_hex2uuid(dbo.fn_bin2hex(dbo.fn_base62decode('4U6sZo9kFS2weMLGMzWbTo'))), 'BE778A5C-0AC0-45E4-A15B-4DD7687C6293';
 
 GO
