@@ -135,23 +135,23 @@ BEGIN
 	--print @base62;
 	IF dbo.fn_base62_to_uuid(@base62) = @uuid
 	BEGIN
-		PRINT @base62 + ' = ' + @uuid + ' success ...';
+		--PRINT @base62 + ' = ' + @uuid + ' success ...';
 		UPDATE dbo.TestBase62 SET base_to_uuid='TRUE' WHERE uuid = @uuid;
 	END
 	ELSE
 	BEGIN
-		PRINT @base62 + ' = ' + @uuid + ' failed !!!';
+		--PRINT @base62 + ' = ' + @uuid + ' failed !!!';
 		UPDATE dbo.TestBase62 SET base_to_uuid='FALSE' WHERE uuid = @uuid;
 	END
 	
 	IF dbo.fn_uuid_to_base62(@uuid) = @base62
 	BEGIN
-		PRINT @uuid + ' = ' + @base62 + ' success ...';
+		--PRINT @uuid + ' = ' + @base62 + ' success ...';
 		UPDATE dbo.TestBase62 SET uuid_to_base='TRUE' WHERE uuid = @uuid;
 	END
 	ELSE
 	BEGIN
-		PRINT @uuid + ' = ' + @base62 + ' failed !!!';
+		--PRINT @uuid + ' = ' + @base62 + ' failed !!!';
 		UPDATE dbo.TestBase62 SET uuid_to_base='FALSE' WHERE uuid = @uuid;
 	END
 
@@ -159,6 +159,14 @@ BEGIN
 END
 CLOSE UUID_CURSOR
 DEALLOCATE UUID_CURSOR
+
+GO
+
+SELECT TOP 100 [base62]
+      ,[uuid]
+      ,[base_to_uuid]
+      ,[uuid_to_base]
+  FROM [testdb].[dbo].[TestBase62]
 
 GO
 
