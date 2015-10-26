@@ -161,10 +161,18 @@ CREATE FUNCTION [dbo].[fn_base62decode](@string_data [varchar](max))
 RETURNS [varbinary](max) WITH EXECUTE AS CALLER
 AS
 BEGIN
+	--declare @string_data varchar(max) = '4U6sZo9kFS2weMLGMzWbTo';
+
 	declare @c_base62_digits char(62) =   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 	declare @c_base62_bin varbinary(75) = 0x000102030405060708097F7F7F7F7F7F7F0A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122237F7F7F7F7F7F2425262728292A2B2C2D2E2F303132333435363738393A3B3C3D;
 
+	declare @string_bin varbinary(max) = CAST(@string_data AS varbinary(max));
 	declare @base62_bin varbinary(max);
+
+	--print N'Charset:' + RTRIM(CAST(@c_base62_digits AS nvarchar(max)));
+	--print N'Input-Binary:';
+	--print @string_bin;
+	--print N'Input-String:' + @string_data;
 
 	declare @dstLen int = 0;
 	declare @carry_flag bit = 'TRUE';
@@ -172,23 +180,25 @@ BEGIN
 	BEGIN
 		set @carry_flag = 'FALSE';
 		declare @dstDigit bigint = 0;
-		declare @string_len int = DATALENGTH(@string_data);
+		declare @string_len int = DATALENGTH(@string_bin);
 
 		--print N'Len:' + RTRIM(CAST(@string_len AS nvarchar(max)));
 
 		declare @iterator int = 1;
 		WHILE ( @iterator <= @string_len )
 		BEGIN
-			declare @mapPos tinyint = CONVERT(tinyint, CONVERT(varbinary(1), SUBSTRING(@string_data, @iterator, 1))) - 0x2F;
-			declare @srcDigit tinyint = CONVERT(tinyint, SUBSTRING(@c_base62_bin, @mapPos, 1));
+			declare @mapPos tinyint = CAST(SUBSTRING(@string_bin, @iterator, 1) AS tinyint) - 0x2F;
+			declare @srcDigit tinyint = CAST(SUBSTRING(@c_base62_bin, @mapPos, 1) AS tinyint);
 			set @dstDigit = (@dstDigit * 62 + @srcDigit);
 
 			--print N'Index:' + RTRIM(CAST(@iterator AS nvarchar(max)));
+			--print CONVERT(varbinary(max), @mapPos);
 			--print CONVERT(varbinary(max), @srcDigit);
+			--print CONVERT(varbinary(max), @dstDigit);
 
 			IF @dstDigit >= 256
 			BEGIN
-			 	set @string_data = STUFF(@string_data, @iterator, 1, substring( @c_base62_digits, @dstDigit/256+1, 1 ));
+			 	set @string_bin = CAST(STUFF(@string_bin, @iterator, 1, substring( @c_base62_digits, @dstDigit/256+1, 1 )) AS varbinary(max));
 				set @dstDigit %= 256;
 				set @carry_flag = 'TRUE';
 			END
@@ -196,13 +206,13 @@ BEGIN
 			BEGIN
 				IF @iterator = 1
 				BEGIN
-					set @string_data = STUFF(@string_data, @iterator, 1, '');
+					set @string_bin = CAST(STUFF(@string_bin, @iterator, 1, '') AS varbinary(max));
 					set @string_len = @string_len - 1;
 					set @iterator = @iterator - 1;
 				END
 				ELSE
 				BEGIN
-					set @string_data = STUFF(@string_data, @iterator, 1, 0x30);
+					set @string_bin = CAST(STUFF(@string_bin, @iterator, 1, 0x30) AS varbinary(max));
 				END
 			END
 
@@ -211,17 +221,18 @@ BEGIN
 
 		IF @dstLen = 0
 		BEGIN
-			set @base62_bin = CONVERT(varbinary(1), @dstDigit);
+			set @base62_bin = CAST((@dstDigit&0xff) AS varbinary(1));
 		END
 		ELSE
 		BEGIN
-			set @base62_bin = CONVERT(varbinary(max), (CONVERT(varchar(1), CONVERT(varbinary(1), @dstDigit)) + CONVERT(varchar(max), @base62_bin)));
+			set @base62_bin = CAST((@dstDigit&0xff) AS varbinary(1)) + @base62_bin;
 		END
 		set @dstLen = @dstLen + 1;
 
 		--print @base62_bin;
 
 	END
+	
 	return @base62_bin;
 END
 
