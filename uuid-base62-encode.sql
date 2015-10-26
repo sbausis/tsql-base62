@@ -6,6 +6,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 --##############################################################################
+-- remove old Functions
 
 IF EXISTS (SELECT *
 	FROM   sys.objects
@@ -13,37 +14,11 @@ IF EXISTS (SELECT *
 	AND type IN ( N'FN' ))
 	DROP FUNCTION [dbo].[fn_hex2bin]
 
-GO
-
-CREATE FUNCTION [dbo].[fn_hex2bin](@hexstring [varchar](max))
-RETURNS [varbinary](max) WITH EXECUTE AS CALLER
-AS
-BEGIN
-	declare @hexbin varbinary(max);
-	set @hexbin = CONVERT(varbinary(max), @hexstring, 2);
-	return @hexbin;
-END
-
-GO
-
---##############################################################################
-
 IF EXISTS (SELECT *
 	FROM   sys.objects
 	WHERE  object_id = OBJECT_ID(N'[dbo].[fn_bin2hex]')
 	AND type IN ( N'FN' ))
 	DROP FUNCTION [dbo].[fn_bin2hex]
-
-GO
-
-CREATE FUNCTION [dbo].[fn_bin2hex](@hexbin [varbinary](max))
-RETURNS [varchar](max) WITH EXECUTE AS CALLER
-AS
-BEGIN
-	declare @hexstring varchar(max);
-	set @hexstring = CONVERT(varchar(max), @hexbin, 2);
-	return @hexstring;
-END
 
 GO
 
@@ -58,12 +33,12 @@ IF EXISTS (SELECT *
 GO
 
 CREATE FUNCTION [dbo].[fn_uuid2hex](@uuid_string [varchar](36))
-RETURNS [varchar](32) WITH EXECUTE AS CALLER
+RETURNS [varbinary](16) WITH EXECUTE AS CALLER
 AS
 BEGIN
 	declare @uuid_hex varchar(32);
 	set @uuid_hex = SUBSTRING(@uuid_string, 35, 2) + SUBSTRING(@uuid_string, 33, 2) + SUBSTRING(@uuid_string, 31, 2) + SUBSTRING(@uuid_string, 29, 2) + SUBSTRING(@uuid_string, 27, 2) + SUBSTRING(@uuid_string, 25, 2) + SUBSTRING(@uuid_string, 22, 2) + SUBSTRING(@uuid_string, 20, 2) + SUBSTRING(@uuid_string, 15, 4) + SUBSTRING(@uuid_string, 10, 4) + SUBSTRING(@uuid_string, 1, 8);
-	return @uuid_hex;
+	return CONVERT(varbinary(16), @uuid_hex, 2);
 END
 
 GO
@@ -78,10 +53,11 @@ IF EXISTS (SELECT *
 
 GO
 
-CREATE FUNCTION [dbo].[fn_hex2uuid](@uuid_hex [varchar](32))
+CREATE FUNCTION [dbo].[fn_hex2uuid](@hexbin [varbinary](16))
 RETURNS [varchar](36) WITH EXECUTE AS CALLER
 AS
 BEGIN
+	declare @uuid_hex varchar(32) = CONVERT(varchar(32), @hexbin, 2);
 	declare @uuid_string varchar(36);
 	set @uuid_string = SUBSTRING(@uuid_hex, 25, 8) + '-' + SUBSTRING(@uuid_hex, 21, 4) + '-' + SUBSTRING(@uuid_hex, 17, 4) + '-' + SUBSTRING(@uuid_hex, 15, 2) + SUBSTRING(@uuid_hex, 13, 2) + '-' + SUBSTRING(@uuid_hex, 11, 2) + SUBSTRING(@uuid_hex, 9, 2) + SUBSTRING(@uuid_hex, 7, 2) + SUBSTRING(@uuid_hex, 5, 2) + SUBSTRING(@uuid_hex, 3, 2) + SUBSTRING(@uuid_hex, 1, 2);
 	return @uuid_string;
@@ -241,7 +217,7 @@ CREATE FUNCTION [dbo].[fn_uuid_to_base62](@uuid [varchar](max))
 RETURNS [varchar](max) WITH EXECUTE AS CALLER
 AS
 BEGIN
-	declare @base62_string varchar(max) = dbo.fn_base62encode(dbo.fn_hex2bin(dbo.fn_uuid2hex(@uuid)));
+	declare @base62_string varchar(max) = dbo.fn_base62encode(dbo.fn_uuid2hex(@uuid));
 	return @base62_string;
 END
 
@@ -261,7 +237,7 @@ CREATE FUNCTION [dbo].[fn_base62_to_uuid](@base [varchar](max))
 RETURNS [varchar](max) WITH EXECUTE AS CALLER
 AS
 BEGIN
-	declare @hex_string varchar(max) = dbo.fn_hex2uuid(dbo.fn_bin2hex(dbo.fn_base62decode(@base)));
+	declare @hex_string varchar(max) = dbo.fn_hex2uuid(dbo.fn_base62decode(@base));
 	return @hex_string;
 END
 
@@ -269,32 +245,22 @@ GO
 
 --##############################################################################
 
-select dbo.fn_hex2bin('A1B9'), 0xA1B9;
-select dbo.fn_bin2hex(0xA1B9), 'A1B9';
-
-select dbo.fn_hex2bin('93627C68D74D5BA145E40AC0BE778A5C'), 0x93627C68D74D5BA145E40AC0BE778A5C;
-select dbo.fn_bin2hex(0x93627C68D74D5BA145E40AC0BE778A5C), '93627C68D74D5BA145E40AC0BE778A5C';
-
-GO
-
---##############################################################################
-
-select dbo.fn_uuid2hex('BE778A5C-0AC0-45E4-A15B-4DD7687C6293'), '93627C68D74D5BA145E40AC0BE778A5C';
-select dbo.fn_hex2uuid('93627C68D74D5BA145E40AC0BE778A5C'), 'BE778A5C-0AC0-45E4-A15B-4DD7687C6293';
+select dbo.fn_uuid2hex('BE778A5C-0AC0-45E4-A15B-4DD7687C6293'), 0x93627C68D74D5BA145E40AC0BE778A5C;
+select dbo.fn_hex2uuid(0x93627C68D74D5BA145E40AC0BE778A5C), 'BE778A5C-0AC0-45E4-A15B-4DD7687C6293';
 
 GO
 
 --##############################################################################
 
 select dbo.fn_base62encode(0x93627C68D74D5BA145E40AC0BE778A5C), '4U6sZo9kFS2weMLGMzWbTo';
-select dbo.fn_base62encode(dbo.fn_hex2bin(dbo.fn_uuid2hex('BE778A5C-0AC0-45E4-A15B-4DD7687C6293'))), '4U6sZo9kFS2weMLGMzWbTo';
+select dbo.fn_base62encode(dbo.fn_uuid2hex('BE778A5C-0AC0-45E4-A15B-4DD7687C6293')), '4U6sZo9kFS2weMLGMzWbTo';
 
 GO
 
 --##############################################################################
 
 select dbo.fn_base62decode('4U6sZo9kFS2weMLGMzWbTo'), 0x93627C68D74D5BA145E40AC0BE778A5C;
-select dbo.fn_hex2uuid(dbo.fn_bin2hex(dbo.fn_base62decode('4U6sZo9kFS2weMLGMzWbTo'))), 'BE778A5C-0AC0-45E4-A15B-4DD7687C6293';
+select dbo.fn_hex2uuid(dbo.fn_base62decode('4U6sZo9kFS2weMLGMzWbTo')), 'BE778A5C-0AC0-45E4-A15B-4DD7687C6293';
 
 GO
 
