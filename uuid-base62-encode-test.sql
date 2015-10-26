@@ -164,7 +164,9 @@ SELECT TOP 100 [base62]
       ,[uuid]
       ,[base_to_uuid]
       ,[uuid_to_base]
-  FROM [testdb].[dbo].[TestBase62]
+  FROM [dbo].[TestBase62]
+	
+DROP TABLE [dbo].[TestBase62]
 
 GO
 
