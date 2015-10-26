@@ -123,7 +123,7 @@ BEGIN
 	BEGIN
 		set @carry_flag = 'FALSE';
 		declare @dstDigit bigint = 0;
-		declare @string_len int = LEN(@string_data);
+		declare @string_len int = DATALENGTH(@string_data);
 
 		--print N'Len:' + RTRIM(CAST(@string_len AS nvarchar(max)));
 
@@ -147,7 +147,7 @@ BEGIN
 				IF @interator = 1
 				BEGIN
 					set @string_data = STUFF(@string_data, @interator, 1, '');
-					set @string_len = LEN(@string_data);
+					set @string_len = @string_len - 1;
 					set @interator = @interator - 1;
 				END
 				ELSE
