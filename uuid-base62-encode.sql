@@ -213,11 +213,11 @@ IF EXISTS (SELECT *
 
 GO
 
-CREATE FUNCTION [dbo].[fn_uuid_to_base62](@uuid [varchar](max))
-RETURNS [varchar](max) WITH EXECUTE AS CALLER
+CREATE FUNCTION [dbo].[fn_uuid_to_base62](@uuid [varchar](36))
+RETURNS [varchar](22) WITH EXECUTE AS CALLER
 AS
 BEGIN
-	declare @base62_string varchar(max) = dbo.fn_base62encode(dbo.fn_uuid2hex(@uuid));
+	declare @base62_string varchar(22) = dbo.fn_base62encode(dbo.fn_uuid2hex(@uuid));
 	return @base62_string;
 END
 
@@ -233,11 +233,11 @@ IF EXISTS (SELECT *
 
 GO
 
-CREATE FUNCTION [dbo].[fn_base62_to_uuid](@base [varchar](max))
-RETURNS [varchar](max) WITH EXECUTE AS CALLER
+CREATE FUNCTION [dbo].[fn_base62_to_uuid](@base [varchar](22))
+RETURNS [varchar](36) WITH EXECUTE AS CALLER
 AS
 BEGIN
-	declare @hex_string varchar(max) = dbo.fn_hex2uuid(dbo.fn_base62decode(@base));
+	declare @hex_string varchar(36) = dbo.fn_hex2uuid(dbo.fn_base62decode(@base));
 	return @hex_string;
 END
 
