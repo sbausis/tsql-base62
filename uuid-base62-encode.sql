@@ -101,43 +101,73 @@ IF EXISTS (SELECT *
 
 GO
 
-CREATE FUNCTION [dbo].[fn_base62encode](@hexbin [varbinary](max))
+CREATE FUNCTION [dbo].[fn_base62encode](@binary_data [varbinary](max))
 RETURNS [varchar](max) WITH EXECUTE AS CALLER
 AS
 BEGIN
-	declare @c_base62_digits char(62) =   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 	
+	declare @c_base62_digits char(62) =   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+	--declare @binary_data varbinary(max) = 0x61626364;
+	declare @string_data varchar(max) = CONVERT(varchar(max), @binary_data);
+
+	--print N'Charset:' + RTRIM(CAST(@c_base62_digits AS nvarchar(max)));
+	--print N'Input-Binary:';
+	--print @binary_data;
+	--print N'Input-String:' + @string_data;
+
 	declare @base62_string varchar(max) = '';
-	set @hexbin = CONVERT(varbinary(max), REVERSE(@hexbin));
-	declare @srcLen int = DATALENGTH(@hexbin);
-	declare @v_iterator int = 0;
-	declare @dstLen int = 0;
-	declare @bCarry tinyint = 0;
-	declare @dstDigit bigint = 0;
-	WHILE ( @bCarry = 0 )
+	declare @base62_len int = 0;
+	declare @carry_flag bit = 'TRUE';
+	WHILE ( @carry_flag = 'TRUE' )
 	BEGIN
-		set @v_iterator = @srcLen;
-		set @bCarry = 1;
-		set @dstDigit = 0;
-		WHILE ( @v_iterator > 0 )
+		set @carry_flag = 'FALSE';
+		declare @dstDigit bigint = 0;
+		declare @string_len int = LEN(@string_data);
+
+		--print N'Len:' + RTRIM(CAST(@string_len AS nvarchar(max)));
+
+		declare @interator int = 1;
+		WHILE ( @interator <= @string_len )
 		BEGIN
-			declare @srcDigit bigint = convert(bigint, SUBSTRING(@hexbin, @v_iterator, 1));
-			set @dstDigit = (@dstDigit * 256 + @srcDigit);
+			declare @byte_data varchar(1) = SUBSTRING(@string_data, @interator, 1);
+			set @dstDigit = (@dstDigit * 256 + CONVERT(tinyint, CONVERT(varbinary(1), @byte_data)));
+
+			--print N'Index:' + RTRIM(CAST(@interator AS nvarchar(max)));
+			--print CONVERT(varbinary(max), @byte_data);
+
 			IF @dstDigit >= 62
 			BEGIN
-			 	set @hexbin = CONVERT(varbinary(max), STUFF(@hexbin, @v_iterator, 1, CONVERT(varbinary(1),(@dstDigit/62))));
+				set @string_data = STUFF(@string_data, @interator, 1, CONVERT(varchar(1), CONVERT(varbinary(1), (@dstDigit/62))));
 				set @dstDigit %= 62;
-				set @bCarry = 0;
+				set @carry_flag = 'TRUE';
 			END
 			ELSE
-				set @hexbin = CONVERT(varbinary(max), STUFF(@hexbin, @v_iterator, 1, 0x00));
+			BEGIN
+				IF @interator = 1
+				BEGIN
+					set @string_data = STUFF(@string_data, @interator, 1, '');
+					set @string_len = LEN(@string_data);
+					set @interator = @interator - 1;
+				END
+				ELSE
+				BEGIN
+					set @string_data = STUFF(@string_data, @interator, 1, 0x00);
+				END
+			END
 
-			set @v_iterator = @v_iterator - 1;
+			set @interator = @interator + 1;
 		END
-		set @base62_string = @base62_string + substring( @c_base62_digits, @dstDigit + 1, 1 );
-		set @dstLen = @dstLen + 1;
+
+		set @base62_string = substring( @c_base62_digits, @dstDigit + 1, 1 ) + @base62_string;
+		set @base62_len = @base62_len + 1;
+
+		--print N'base62_string[' + RTRIM(CAST(@base62_len AS nvarchar(max))) + ']:' + @base62_string;
+
 	END
-	set @base62_string = REVERSE(@base62_string);
+
+	--print N'Result[' + RTRIM(CAST(@base62_len AS nvarchar(max))) + ']:' + @base62_string;
+
 	return @base62_string;
 END
 
